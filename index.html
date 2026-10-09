@@ -35,6 +35,8 @@
 .overview-open{grid-template-columns:174px minmax(0,1fr)}.overview-open .calendar-aside{display:none}.overview-header{display:flex;align-items:center;justify-content:space-between;gap:16px}.overview-eyebrow{font-size:15px;color:var(--muted);margin:0 0 10px}.overview-header h1{font-size:38px;letter-spacing:-1px;margin:0}.overview-controls{display:flex;align-items:center;gap:8px}.overview-today{padding:10px;border-radius:8px;background:var(--mint);white-space:nowrap}.overview-summary{font-size:14px;color:var(--muted);margin:20px 0 26px}.overview-weekdays,.overview-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.overview-weekdays{text-align:center;color:var(--muted);font-size:13px;padding-bottom:12px}.overview-grid{gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}.overview-day{min-width:0;min-height:146px;padding:12px 9px;background:white;text-align:left;vertical-align:top;display:flex;flex-direction:column;gap:8px}.overview-day:hover{background:#f6f9f6}.overview-day:active{transform:none}.overview-day.outside{background:#f9faf9;color:#bbc5bf}.overview-date-row{display:flex;align-items:center;gap:6px}.overview-date{font-size:16px;font-weight:600}.overview-day.is-today .overview-date{background:var(--green);color:white;width:27px;height:27px;border-radius:9px;display:grid;place-items:center}.overview-today-label{font-size:10px;color:var(--green)}.overview-event{font-size:11px;color:#8a7557;line-height:1.5}.overview-courses{display:flex;flex-direction:column;gap:7px;width:100%}.overview-course{display:flex;flex-direction:column;gap:2px;padding:5px 6px;background:var(--mint);border-radius:5px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}.overview-time{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}.overview-empty{font-size:11px;color:#a0aaa4}.overview-day:focus-visible{outline-offset:-3px}
 @media(max-width:1200px) and (min-width:761px){.overview-open{grid-template-columns:150px minmax(0,1fr)}}
 @media(max-width:760px){.overview-header{align-items:flex-end;gap:8px}.overview-header h1{font-size:27px}.overview-eyebrow{font-size:13px}.overview-controls{gap:4px}.overview-summary{margin:18px 0;font-size:12px}.overview-grid{gap:1px}.overview-day{padding:7px 3px;min-height:95px;gap:6px}.overview-date{font-size:13px}.overview-course{font-size:10px;padding:4px 3px;line-height:1.45}.overview-time{font-size:8px;letter-spacing:-.3px;white-space:nowrap}.overview-event,.overview-empty{font-size:9px}.overview-today-label{display:none}.overview-day.is-today .overview-date{width:22px;height:22px;border-radius:7px}.overview-weekdays{font-size:11px}.mobile-navigation{padding-left:8px;padding-right:8px}.mobile-navigation button{width:20%;font-size:11px}.mobile-navigation .kingsley-link{width:40%;font-size:11px}.overview-open main{padding-left:12px;padding-right:12px}.overview-header,.overview-summary{padding-left:6px;padding-right:6px}}
+.mobile-calendar-picker{display:none}
+@media(max-width:760px){.calendar-aside{display:none}.mobile-calendar-picker{display:block;margin:-18px 0 26px}.calendar-toggle{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 auto;padding:7px 13px;border-radius:20px;color:var(--green);background:var(--mint);font-size:12px}.calendar-toggle svg{width:14px;height:14px;transform:rotate(90deg);transition:transform .25s var(--ease)}.calendar-toggle[aria-expanded=true] svg{transform:rotate(-90deg)}.mobile-calendar-panel{margin-top:14px;animation:reveal .3s var(--ease)}.mobile-calendar-panel .month-calendar{padding:20px}.week-picker{margin-bottom:32px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 </style>
@@ -64,6 +66,7 @@
           <button class="icon-button" id="next-week" aria-label="下一周"><span data-icon="right"></span></button>
           <button class="today-button" id="today-button">回到今天</button>
         </div>
+        <div class="mobile-calendar-picker"><button class="calendar-toggle" id="calendar-toggle" aria-expanded="false" aria-controls="mobile-calendar-panel"><span>展开月历</span><span data-icon="right"></span></button><div class="mobile-calendar-panel" id="mobile-calendar-panel" hidden></div></div>
         <div id="day-content" aria-live="polite" aria-atomic="true"></div>
       </section>
       <section id="overview-view" aria-label="月历课表总览" hidden>
@@ -190,6 +193,25 @@
   }
   let month=S.parseDate(selected);
   let overviewMonth=S.parseDate(selected);
+  const mobileCalendarMedia=matchMedia('(max-width:760px)');
+  const calendarCard=document.querySelector('.month-calendar');
+  function closeMobileCalendar(){
+    $('mobile-calendar-panel').hidden=true;
+    $('calendar-toggle').setAttribute('aria-expanded','false');
+    $('calendar-toggle').querySelector('span').textContent='展开月历';
+  }
+  function placeCalendar(){
+    (mobileCalendarMedia.matches?$('mobile-calendar-panel'):document.querySelector('.calendar-aside')).append(calendarCard);
+    closeMobileCalendar();
+  }
+  placeCalendar();
+  mobileCalendarMedia.addEventListener('change',placeCalendar);
+  $('calendar-toggle').addEventListener('click',()=>{
+    const open=$('mobile-calendar-panel').hidden;
+    $('mobile-calendar-panel').hidden=!open;
+    $('calendar-toggle').setAttribute('aria-expanded',String(open));
+    $('calendar-toggle').querySelector('span').textContent=open?'收起月历':'展开月历';
+  });
   function renderOverview(){
     const y=overviewMonth.getUTCFullYear(),m=overviewMonth.getUTCMonth();
     $('overview-title').textContent=`${y}年${m+1}月`;
@@ -271,7 +293,7 @@
     document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(view==='term'){renderTerm();document.title='学期校历 · 日课';}else if(view==='overview'){renderOverview();document.title='月历课表总览 · 日课';}else renderDay(false);
   }
-  function selectDate(key){const direction=key>=selected?1:-1;selected=key;month=S.parseDate(key);if(view!=='daily')setView('daily');renderDay(true,direction);renderMonth();}
+  function selectDate(key){const direction=key>=selected?1:-1;selected=key;month=S.parseDate(key);if(view!=='daily')setView('daily');renderDay(true,direction);renderMonth();closeMobileCalendar();}
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   $('week-days').addEventListener('click',e=>{const b=e.target.closest('[data-date]');if(b)selectDate(b.dataset.date);});
   $('month-grid').addEventListener('click',e=>{const b=e.target.closest('[data-date]');if(b)selectDate(b.dataset.date);});
