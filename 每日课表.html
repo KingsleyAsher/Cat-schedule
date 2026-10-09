@@ -42,6 +42,8 @@
 @media(max-width:760px){.navigation{padding-top:23px}main{padding-top:22px}.today-button{top:23px}.day-header h1{font-size:42px}.day-header .daily-greeting{font-size:14px;margin-bottom:10px}.day-header p{font-size:15px;margin-top:10px}.day-header{margin-bottom:22px}.day-header-note{gap:20px}.week-picker{margin-bottom:30px}.mobile-calendar-picker{margin-top:-18px;margin-bottom:24px}.period-heading{font-size:19px;margin-bottom:18px}.course-card summary{padding:15px 16px}.course-card h2{font-size:19px;margin-bottom:10px}.course-meta{display:flex;flex-direction:column;font-size:13px;gap:7px}.meta-item{gap:8px;align-items:center}.meta-item svg{width:16px;height:16px;margin-top:0}.course-status{right:16px;top:20px}.period-section{margin-bottom:22px}.period-section.empty{min-height:70px;padding:18px 0 18px 24px}.period-section.empty:before{top:27px}.empty-label{font-size:17px}.day-message{font-size:15px;margin-top:12px;padding-top:16px;line-height:1.8}.mobile-navigation{height:calc(74px + env(safe-area-inset-bottom));padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}}
 @media(max-width:360px){.day-header h1{font-size:38px}.course-card h2{font-size:17px}}
 @media(max-width:760px){main{padding-top:18px}.day-header{margin-bottom:16px}.week-picker{margin-bottom:26px}.mobile-calendar-picker{margin-bottom:18px}.period-heading{margin-bottom:14px}.period-section{margin-bottom:16px}.course-card summary{padding-top:13px;padding-bottom:13px}.period-section.empty{min-height:60px;padding-top:14px;padding-bottom:14px}.period-section.empty:before{top:23px}.day-message{margin-top:8px;padding-top:12px;padding-bottom:8px}}
+.timed-greeting .welcome-signature{display:block;font-family:"Songti SC","STSong","SimSun",serif;font-size:clamp(23px,3.5vw,42px);line-height:1.7;letter-spacing:.06em;font-weight:400}
+@media(max-width:480px){.timed-greeting .welcome-signature{font-size:24px;letter-spacing:.03em}.timed-greeting .welcome-greeting{font-size:32px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 </style>
@@ -337,6 +339,25 @@
   renderDay(false);renderMonth();renderTerm();
   const welcomeKey='rike.welcome.peng.v2';
   const welcomeScreen=$('welcome-screen');
+  const visitKey='rike.last-open.peng.v1';
+  const greetingPhrases=['别忘了想我呀','又是美好的一天！','我大概在想你','我知道你在想我！','嘻嘻，什么都没有哦~','嘿嘿，你想听什么？','世界，以我为主宰！','mua~'];
+  function recordVisit(){
+    const now=Date.now(),day=S.todayKey(new Date(now));
+    let previous=null;
+    try{previous=JSON.parse(localStorage.getItem(visitKey));}catch{/* Treat unavailable or invalid storage as a new visit. */}
+    const shouldGreet=!previous||previous.day!==day||!Number.isFinite(previous.time)||now-previous.time>3*60*60*1000;
+    try{localStorage.setItem(visitKey,JSON.stringify({day,time:now}));}catch{/* Greeting still works when storage is unavailable. */}
+    return shouldGreet;
+  }
+  function showTimedGreeting(){
+    const greeting=`${S.greeting()}，彭茜雅。`;
+    const phrase=greetingPhrases[Math.floor(Math.random()*greetingPhrases.length)];
+    welcomeScreen.querySelector('.welcome-greeting').textContent=greeting;
+    welcomeScreen.querySelector('.welcome-signature').textContent=phrase;
+    welcomeScreen.classList.add('timed-greeting');
+    welcomeScreen.setAttribute('aria-label',`${greeting}${phrase}。点击或按回车进入课表。`);
+    showWelcome();
+  }
   function hasSeenWelcome(){
     try{return localStorage.getItem(welcomeKey)==='yes'||sessionStorage.getItem(welcomeKey)==='yes';}catch{return false;}
   }
@@ -371,8 +392,18 @@
     welcomeScreen.focus({preventScroll:true});
     welcomeTimer=setTimeout(enterTimetable,duration);
   }
-  $('replay-welcome').addEventListener('click',()=>{setView('daily');showWelcome(15000);});
-  if(!hasSeenWelcome())showWelcome();
+  $('replay-welcome').addEventListener('click',()=>{
+    setView('daily');welcomeScreen.classList.remove('timed-greeting');
+    welcomeScreen.querySelector('.welcome-greeting').textContent='你好，彭茜雅。';
+    welcomeScreen.querySelector('.welcome-signature').innerHTML='<span lang="en">Kingsley Asher</span> <span class="signature-credit">制作</span>';
+    welcomeScreen.setAttribute('aria-label','你好，彭茜雅。Kingsley Asher 制作。点击或按回车进入课表。');
+    showWelcome(15000);
+  });
+  const shouldGreet=recordVisit();
+  if(!hasSeenWelcome())showWelcome();else if(shouldGreet)showTimedGreeting();
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&recordVisit()&&welcomeScreen.hidden){setView('daily');showTimedGreeting();}
+  });
 })();
 
 </script>
