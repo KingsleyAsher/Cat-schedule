@@ -356,7 +356,7 @@
     welcomeScreen.querySelector('.welcome-signature').textContent=phrase;
     welcomeScreen.classList.add('timed-greeting');
     welcomeScreen.setAttribute('aria-label',`${greeting}${phrase}。点击或按回车进入课表。`);
-    showWelcome(3000);
+    showWelcome(2500);
   }
   function hasSeenWelcome(){
     try{return localStorage.getItem(welcomeKey)==='yes'||sessionStorage.getItem(welcomeKey)==='yes';}catch{return false;}
