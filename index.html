@@ -356,7 +356,7 @@
     welcomeScreen.querySelector('.welcome-signature').textContent=phrase;
     welcomeScreen.classList.add('timed-greeting');
     welcomeScreen.setAttribute('aria-label',`${greeting}${phrase}。点击或按回车进入课表。`);
-    showWelcome();
+    showWelcome(3000);
   }
   function hasSeenWelcome(){
     try{return localStorage.getItem(welcomeKey)==='yes'||sessionStorage.getItem(welcomeKey)==='yes';}catch{return false;}
@@ -365,7 +365,14 @@
     try{localStorage.setItem(welcomeKey,'yes');}catch{try{sessionStorage.setItem(welcomeKey,'yes');}catch{/* Storage may be disabled by the browser. */}}
   }
   let welcomeTimer,exitTimer,leaving=false;
+  let pendingFirstGreeting=false;
   function finishWelcome(){
+    if(pendingFirstGreeting){
+      pendingFirstGreeting=false;
+      rememberWelcome();
+      showTimedGreeting();
+      return;
+    }
     welcomeScreen.hidden=true;
     document.querySelector('.app-shell').inert=false;
     document.querySelector('.mobile-navigation').inert=false;
@@ -400,7 +407,7 @@
     showWelcome(15000);
   });
   const shouldGreet=recordVisit();
-  if(!hasSeenWelcome())showWelcome();else if(shouldGreet)showTimedGreeting();
+  if(!hasSeenWelcome()){pendingFirstGreeting=true;showWelcome();}else if(shouldGreet)showTimedGreeting();
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'&&recordVisit()&&welcomeScreen.hidden){setView('daily');showTimedGreeting();}
   });
